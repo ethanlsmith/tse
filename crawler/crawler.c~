@@ -1,0 +1,31 @@
+#include <stdio.h>
+#include "../utils/webpage.h"
+
+int main(void) {
+
+	int pos;
+	char *result;
+	webpage_t* page = webpage_new("https://thayer.github.io/engs50/", 0, NULL);
+	
+	if(webpage_fetch(page)) {
+		char *html = webpage_getHTML(page);
+	  printf("Found html: %s\n", html);
+		
+	while((pos = webpage_getNextURL(page, pos, &result)) > 0) {
+		if(IsInternalURL(char *result)) {
+		printf("Found url: %s, Internal\n", result);
+		free(result);
+		}
+		
+		else {
+		printf("Found url: %s, External\n", result);
+		free(result);
+		}
+	}
+		free(html);
+		webpage_delete(page);
+		exit(EXIT_SUCCESS);
+	}
+	
+	else exit(EXIT_FAILURE);
+}
