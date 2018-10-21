@@ -13,7 +13,6 @@ int main(void) {
 	int pos;
 	char *url;
 	webpage_t* page = webpage_new("https://thayer.github.io/engs50/", 0, NULL);
-	//webpage_t* sp;
 	webpage_t* temp;
 	queue_t *q1;
 	q1=qopen();
@@ -25,10 +24,10 @@ int main(void) {
 				temp = webpage_new(url, 0, NULL);
 				qput(q1,(void*)temp);
 				//free(url);
-				free(webpage_getHTML(temp));
+				//free(webpage_getHTML(temp));
 				//webpage_delete((void*)temp);
 			}
-			free(url);
+			//free(url);
 		}
 // 		for (int i=0;i=2;i++) {
 		while((temp=(webpage_t*)qget(q1))!=NULL) {
@@ -41,7 +40,6 @@ int main(void) {
 		//free(url);
 		//webpage_delete((void*)temp);
 		res=true;
-		free(webpage_getHTML(page));
 	}
 	else res=false;
 	webpage_delete((void*)page);
