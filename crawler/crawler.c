@@ -1,48 +1,227 @@
-#include <string.h>
-#include <stdio.h> 
+/*Ethan Smith Nick Blasey
+ * crawler.c - parses the initial seed webpage, extracts 
+ * any embedded URLs, and saves the webpage's HTML into a 
+ * given directory, then recursively retrieves, scans, and 
+ * saves found webpages until the max depth is reached
+ * 
+ * usage: ./crawler seedURL pageDirectory maxDepth
+ * 		  must have exactly three arguments, a char* 
+ *		  seed URL to start the crawl from, a char* path
+ *		  to a directory to save the page files in, and 
+ *		  an int maxDepth to recursively crawl pages to
+ 
+ */
+
+#include <stdio.h>
 #include <stdlib.h>
-#include <inttypes.h>
-#include <webpage.h>
-#include <queue.h>
-#include <hash.h>
+#include <string.h>
+#include "webpage.h"
+#include "hash.h"
+#include "queue.h"
+#include <file.h>
 
 
-int main(void) {
+/* saves page into given directory under filename
+ * given by filenum in the format url, depth, and
+ * HTML each on their own lines
+ */
+void pagesaver(webpage_t* page, int filenum, char *pageDir);
 
-	bool res=false;
-	int pos;
-	char *url;
-	webpage_t* page = webpage_new("https://thayer.github.io/engs50/", 0, NULL);
-	webpage_t* temp;
-	queue_t *q1;
-	q1=qopen();
-	
-	if(webpage_fetch(page)) {
-		
-		while((pos = webpage_getNextURL(page, pos, &url)) > 0) {
-			if(IsInternalURL(url)) {
-				temp = webpage_new(url, 0, NULL);
-				qput(q1,(void*)temp);
-				//free(url);
-				//free(webpage_getHTML(temp));
-				//webpage_delete((void*)temp);
-			}
-			//free(url);
-		}
-// 		for (int i=0;i=2;i++) {
-		while((temp=(webpage_t*)qget(q1))!=NULL) {
-			temp=(webpage_t*)qget(q1);
-			printf("%s\n",webpage_getURL(temp));
-			webpage_delete((void*)temp);
-		}
-		qclose(q1);
-		//free(temp);
-		//free(url);
-		//webpage_delete((void*)temp);
-		res=true;
+/* makes webpage structs from the given file, assuming
+ * it is in the format "URL\n depth\n HTML\n". Assigns 
+ * this struct to the given pointer. Page must later
+ * be freed by caller
+ */
+
+
+/**************** global variables ****************/
+char *checked = "checked"; // dummy item for hashtable of URLs
+
+/**************** local function prototypes ****************/
+int checkarguments(char *seedURL, char *pageDir, int maxDepth);
+void crawler(queue_t *pagesToCrawl, int maxDepth, char *pageDir, hashtable_t *pagesSeen);
+void pagescanner(webpage_t* page, hashtable_t *pagesSeen, int depth, queue_t *pagesToCrawl);
+
+
+/**************** main ***************
+ * calls functions to check number and validity
+ * of arguments, initialize data structures, start 
+ * program's functionality, and clean up by freeing memory
+ */
+int main(const int argc, char *argv[])
+{
+	// check for exactly three parameters
+	if (argc != 4) {
+		fprintf(stderr, "usage: exactly 3 arguments (seedURL, pageDir, maxDepth)\n");
+		return 1;
 	}
-	else res=false;
-	webpage_delete((void*)page);
-	if(res==true) exit(EXIT_SUCCESS);
-	else exit(EXIT_FAILURE);
+
+	// create variables of arguments
+	char *seedURL = argv[1];
+	char *pageDir = argv[2];
+	int maxDepth = atoi(argv[3]);
+
+	// run function to check validity of arguments
+	if (checkarguments(seedURL, pageDir, maxDepth) != 0) {
+		return 2;
+	}
+
+	// initialize data structures
+	queue_t *pagesToCrawl = qopen(); // a Queue that holds pages to crawl
+	hashtable_t *pagesSeen = hopen(10); // holds seen URLs
+	
+	
+	// create webpage for seed URL and insert it into data structs
+	webpage_t *seed = webpage_new(seedURL, 0, NULL);
+	
+	qput(pagesToCrawl, seed);
+	hput(pagesSeen,checked,seedURL,keylen);
+
+	// crawl from seed URL
+	fprintf(stdout, "STARTING CRAWL...\n");
+	fprintf(stdout, "----------------\n");
+	crawler(pagesToCrawl, maxDepth, pageDir, pagesSeen);
+	fprintf(stdout, "...CRAWL ENDED\n");
+
+	// clean up
+	qapply(pagesToCrawl, webpage_delete);
+	hclose(pagesSeen);
+	return 0;
+}
+
+
+/**************** checkarguments ***************
+ * checks that URL is internal and can be normalized, 
+ * pageDir is writable, and maxDepth is non-negative
+ */
+int checkarguments(char *seedURL, char *pageDir, int maxDepth) 
+{
+	// check validity of depth parameter
+	if (maxDepth < 0) {
+		fprintf(stderr, "maxDepth must be non-negative\n");
+		return 2;
+	}
+
+	// check validity of seedURL parameter
+	if (! IsInternalURL(seedURL)) {
+		fprintf(stderr, "seedURL must be internal\n");
+		return 2;
+	} else if (! NormalizeURL(seedURL)) {
+		fprintf(stderr, "%s cannot be normalized\n", seedURL);
+		return 2;
+	}
+
+	// check validity of pageDir parameter by inserting a test file
+	char *dirTemp = (char *) malloc(sizeof(pageDir)*5);
+	strcpy(dirTemp, pageDir);
+	strcat(dirTemp, ".crawler");
+	FILE *fp;
+	if ((fp = fopen(dirTemp, "w")) == NULL) {
+		fprintf(stderr, "pageDir must be a writable directory\n");
+		free(dirTemp); // clean up
+		return 2;
+	} else {
+		fclose(fp);
+	}
+
+	free(dirTemp); // clean up
+	return 0;
+}
+
+/**************** crawler ***************
+ * while there is a page left in the bag, pull out a page
+ * fetch the HTML, and if the page is below the max depth,
+ * crawl the page for embedded URLs
+ */
+void crawler(queue_t *pagesToCrawl, int maxDepth, char *pageDir, hashtable_t *pagesSeen)
+{
+	int i = 1; // filename for saving page information
+	webpage_t *page;
+
+	// for all pages in the bag...
+	while ((page = qget(pagesToCrawl)) != NULL) {
+		// fprintf(stdout, "pulling %s from queue\n", webpage_getURL(page));
+
+		// fetch and save page 
+		if (webpage_fetch(page)) { // from libcs50/webpage.h 
+			pagesaver(page, i, pageDir); // from common/pagedir.h
+			i++;
+		} else {
+			fprintf(stderr, "failed to fetch page, url: %s\n", webpage_getURL(page));
+		}
+
+		// if below max depth, scan for deeper URLs
+		if ((webpage_getDepth(page))<maxDepth) {
+			// fprintf(stdout, "scanning %s...\n", webpage_getURL(page));
+			pagescanner(page, pagesSeen, webpage_getDepth(page), pagesToCrawl); 
+		} else {
+			// fprintf(stdout, "%s at max depth\n", webpage_getURL(page));
+		}
+
+		// clean up
+		webpage_delete(page);
+	}
+
+	fprintf(stdout, "----------------\n");
+	fprintf(stdout, "%d PAGES WERE SAVED\n", i-1);
+}
+
+/**************** pagescanner ***************
+ * use webpage.h functions to scan HTML
+ * of pages for embedded URLs, check if they are 
+ * internal and can be normalized, and insert page 
+ * into queue and hashtable if it hasn't already been 
+ * seen
+ */
+void pagescanner(webpage_t* page, hashtable_t *pagesSeen, int depth, queue_t *pagesToCrawl)
+{
+ 	int pos = 0; // store position of HTML scan
+ 	char *result;
+ 	
+ 	// while loop modified from engs50's webpage.h
+ 	while ((pos = webpage_getNextURL(page, pos, &result)) > 0) {
+ 		// printf("Found url: %s\n", result);
+
+ 		// normalize url
+ 		if (! NormalizeURL(result)) {
+			// fprintf(stderr, "%s cannot be normalized\n", result);
+		} 
+
+		// check if internal, add to hashtable and create an object
+		if (! IsInternalURL(result)) {
+			// fprintf(stderr, "%s is not internal\n", result);
+		} else {
+			// check if URL has been seen
+			if (hput(pagesSeen,checked,result)) {
+				webpage_t *new = webpage_new(result, depth+1, NULL);
+				qput(pagesToCrawl, new);
+				// fprintf(stdout, "%s inserted successfully\n", result);
+			} else {
+				// fprintf(stderr, "%s already seen\n", result);
+			}
+		}
+
+		// clean up
+ 		free(result);
+ 	}
+}
+
+void pagesaver(webpage_t* page, int filenum, char *pageDir)
+{
+	// create file path
+	char *buffer = (char *) malloc(sizeof(pageDir)*10);
+	char num[5];
+	strcpy(buffer, pageDir);
+	sprintf(num, "%d", filenum);
+	strcat(buffer, num);
+
+	// open file and print URL, depth, and HTML
+	FILE *fp = fopen(buffer, "w"); 
+	assertp(fp, "cannot open writable file\n"); // detect error in opening file
+	fprintf(fp, "%s\n%i\n%s", webpage_getURL(page), webpage_getDepth(page), webpage_getHTML(page));
+	
+	// clean up 
+	fprintf(stdout, "WEBPAGE SAVED IN: %s\n", buffer);
+	free(buffer);
+	fclose(fp);
 }
