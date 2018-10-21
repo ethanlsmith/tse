@@ -18,8 +18,6 @@
 #include "webpage.h"
 #include "hash.h"
 #include "queue.h"
-#include <file.h>
-
 
 /* saves page into given directory under filename
  * given by filenum in the format url, depth, and
@@ -32,6 +30,7 @@ void pagesaver(webpage_t* page, int filenum, char *pageDir);
  * this struct to the given pointer. Page must later
  * be freed by caller
  */
+
 
 
 /**************** global variables ****************/
@@ -75,7 +74,7 @@ int main(const int argc, char *argv[])
 	webpage_t *seed = webpage_new(seedURL, 0, NULL);
 	
 	qput(pagesToCrawl, seed);
-	hput(pagesSeen,checked,seedURL,keylen);
+	hput(pagesSeen,checked,seedURL,strlen(seedURL));
 
 	// crawl from seed URL
 	fprintf(stdout, "STARTING CRAWL...\n");
@@ -85,7 +84,7 @@ int main(const int argc, char *argv[])
 
 	// clean up
 	qapply(pagesToCrawl, webpage_delete);
-	hclose(pagesSeen);
+	happly(pagesSeen,NULL);
 	return 0;
 }
 
@@ -140,7 +139,7 @@ void crawler(queue_t *pagesToCrawl, int maxDepth, char *pageDir, hashtable_t *pa
 
 	// for all pages in the bag...
 	while ((page = qget(pagesToCrawl)) != NULL) {
-		// fprintf(stdout, "pulling %s from queue\n", webpage_getURL(page));
+		fprintf(stdout, "pulling %s from queue\n", webpage_getURL(page));
 
 		// fetch and save page 
 		if (webpage_fetch(page)) { // from libcs50/webpage.h 
@@ -152,10 +151,10 @@ void crawler(queue_t *pagesToCrawl, int maxDepth, char *pageDir, hashtable_t *pa
 
 		// if below max depth, scan for deeper URLs
 		if ((webpage_getDepth(page))<maxDepth) {
-			// fprintf(stdout, "scanning %s...\n", webpage_getURL(page));
+			fprintf(stdout, "scanning %s...\n", webpage_getURL(page));
 			pagescanner(page, pagesSeen, webpage_getDepth(page), pagesToCrawl); 
 		} else {
-			// fprintf(stdout, "%s at max depth\n", webpage_getURL(page));
+		 fprintf(stdout, "%s at max depth\n", webpage_getURL(page));
 		}
 
 		// clean up
@@ -180,24 +179,24 @@ void pagescanner(webpage_t* page, hashtable_t *pagesSeen, int depth, queue_t *pa
  	
  	// while loop modified from engs50's webpage.h
  	while ((pos = webpage_getNextURL(page, pos, &result)) > 0) {
- 		// printf("Found url: %s\n", result);
+ 		printf("Found url: %s\n", result);
 
  		// normalize url
  		if (! NormalizeURL(result)) {
-			// fprintf(stderr, "%s cannot be normalized\n", result);
+			 fprintf(stderr, "%s cannot be normalized\n", result);
 		} 
 
 		// check if internal, add to hashtable and create an object
 		if (! IsInternalURL(result)) {
-			// fprintf(stderr, "%s is not internal\n", result);
+			 fprintf(stderr, "%s is not internal\n", result);
 		} else {
 			// check if URL has been seen
-			if (hput(pagesSeen,checked,result)) {
+			if (hput(pagesSeen,checked,result,strlen(result))==0) {
 				webpage_t *new = webpage_new(result, depth+1, NULL);
 				qput(pagesToCrawl, new);
-				// fprintf(stdout, "%s inserted successfully\n", result);
+				 fprintf(stdout, "%s inserted successfully\n\n", result);
 			} else {
-				// fprintf(stderr, "%s already seen\n", result);
+				 fprintf(stderr, "%s already seen\n\n", result);
 			}
 		}
 
@@ -217,7 +216,6 @@ void pagesaver(webpage_t* page, int filenum, char *pageDir)
 
 	// open file and print URL, depth, and HTML
 	FILE *fp = fopen(buffer, "w"); 
-	assertp(fp, "cannot open writable file\n"); // detect error in opening file
 	fprintf(fp, "%s\n%i\n%s", webpage_getURL(page), webpage_getDepth(page), webpage_getHTML(page));
 	
 	// clean up 
