@@ -9,7 +9,7 @@
  *		  seed URL to start the crawl from, a char* path
  *		  to a directory to save the page files in, and 
  *		  an int maxDepth to recursively crawl pages to
- 
+ * set args https://thayer.github.io/engs50/ ../pages/ 1
  */
 
 #include <stdio.h>
@@ -40,8 +40,8 @@ char *checked = "checked"; // dummy item for hashtable of URLs
 int checkarguments(char *seedURL, char *pageDir, int maxDepth);
 void crawler(queue_t *pagesToCrawl, int maxDepth, char *pageDir, hashtable_t *pagesSeen);
 void pagescanner(webpage_t* page, hashtable_t *pagesSeen, int depth, queue_t *pagesToCrawl);
-
-
+bool searchfn(void* elementp,char* keyp);
+	
 /**************** main ***************
  * calls functions to check number and validity
  * of arguments, initialize data structures, start 
@@ -191,7 +191,8 @@ void pagescanner(webpage_t* page, hashtable_t *pagesSeen, int depth, queue_t *pa
 			 fprintf(stderr, "%s is not internal\n", result);
 		} else {
 			// check if URL has been seen
-			if (hput(pagesSeen,checked,result,strlen(result))==0) {
+			if (hsearch(pagesSeen,searchfn,result,strlen(result))==NULL) {
+				//			if (hput(pagesSeen,checked,result,strlen(result))==0) {
 				webpage_t *new = webpage_new(result, depth+1, NULL);
 				qput(pagesToCrawl, new);
 				 fprintf(stdout, "%s inserted successfully\n\n", result);
@@ -222,4 +223,18 @@ void pagesaver(webpage_t* page, int filenum, char *pageDir)
 	fprintf(stdout, "WEBPAGE SAVED IN: %s\n", buffer);
 	free(buffer);
 	fclose(fp);
+}
+
+bool searchfn(void* elementp,char* keyp)
+{
+	fprintf(stdout, "we in search function\n");
+	webpage_t *wp=(webpage_t*)elementp;
+	//	char *comp="url";
+	char *comp=webpage_getURL(wp);
+	fprintf(stdout,"keyp is %s\n",(char*)keyp);
+	fprintf(stdout,"comp is %s\n",comp);
+	fprintf(stdout,"comparing %s to %s\n",comp,(char*)keyp);
+	if (strcmp(comp,(char*)keyp)==0)
+		return(true);
+	else return(false);
 }
