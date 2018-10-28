@@ -40,7 +40,7 @@ char *checked = "checked"; // dummy item for hashtable of URLs
 int checkarguments(char *seedURL, char *pageDir, int maxDepth);
 void crawler(queue_t *pagesToCrawl, int maxDepth, char *pageDir, hashtable_t *pagesSeen);
 void pagescanner(webpage_t* page, hashtable_t *pagesSeen, int depth, queue_t *pagesToCrawl);
-bool searchfn(void* elementp,char* keyp);
+bool searchfn(void* elementp,const void* keyp);
 	
 /**************** main ***************
  * calls functions to check number and validity
@@ -74,7 +74,10 @@ int main(const int argc, char *argv[])
 	webpage_t *seed = webpage_new(seedURL, 0, NULL);
 	
 	qput(pagesToCrawl, seed);
-	hput(pagesSeen,checked,seedURL,strlen(seedURL));
+
+	char*np=(char*) malloc(sizeof(seedURL)*strlen(seedURL));                                                                           
+  strcpy(np,seedURL);
+	hput(pagesSeen,np,np,strlen(np));
 
 	// crawl from seed URL
 	fprintf(stdout, "STARTING CRAWL...\n");
@@ -83,8 +86,12 @@ int main(const int argc, char *argv[])
 	fprintf(stdout, "...CRAWL ENDED\n");
 
 	// clean up
-	qapply(pagesToCrawl, webpage_delete);
-	happly(pagesSeen,NULL);
+	//qapply(pagesToCrawl, webpage_delete);
+	//happly(pagesSeen,NULL);
+	qclose(pagesToCrawl);
+	//fprintf(stdout,"its not qclose\n\n");
+	//free(pagesSeen);
+	hclose(pagesSeen);
 	return 0;
 }
 
@@ -137,13 +144,13 @@ void crawler(queue_t *pagesToCrawl, int maxDepth, char *pageDir, hashtable_t *pa
 	int i = 1; // filename for saving page information
 	webpage_t *page;
 
-	// for all pages in the bag...
+	// for all pages in the queue...
 	while ((page = qget(pagesToCrawl)) != NULL) {
 		fprintf(stdout, "pulling %s from queue\n", webpage_getURL(page));
 
 		// fetch and save page 
-		if (webpage_fetch(page)) { // from libcs50/webpage.h 
-			pagesaver(page, i, pageDir); // from common/pagedir.h
+		if (webpage_fetch(page)) {  
+			pagesaver(page, i, pageDir); 
 			i++;
 		} else {
 			fprintf(stderr, "failed to fetch page, url: %s\n", webpage_getURL(page));
@@ -153,6 +160,7 @@ void crawler(queue_t *pagesToCrawl, int maxDepth, char *pageDir, hashtable_t *pa
 		if ((webpage_getDepth(page))<maxDepth) {
 			fprintf(stdout, "scanning %s...\n", webpage_getURL(page));
 			pagescanner(page, pagesSeen, webpage_getDepth(page), pagesToCrawl); 
+			//webpage_delete(page);
 		} else {
 		 fprintf(stdout, "%s at max depth\n", webpage_getURL(page));
 		}
@@ -191,10 +199,15 @@ void pagescanner(webpage_t* page, hashtable_t *pagesSeen, int depth, queue_t *pa
 			 fprintf(stderr, "%s is not internal\n", result);
 		} else {
 			// check if URL has been seen
+			//fprintf(stdout,"result is %s\n",result);
 			if (hsearch(pagesSeen,searchfn,result,strlen(result))==NULL) {
 				//			if (hput(pagesSeen,checked,result,strlen(result))==0) {
 				webpage_t *new = webpage_new(result, depth+1, NULL);
 				qput(pagesToCrawl, new);
+				char*np=(char*) malloc(sizeof(result)*strlen(result));
+				strcpy(np,webpage_getURL(new));
+				//char*np=webpage_getURL(new);
+				hput(pagesSeen,(void*)np,np,strlen(webpage_getURL(new)));
 				 fprintf(stdout, "%s inserted successfully\n\n", result);
 			} else {
 				 fprintf(stderr, "%s already seen\n\n", result);
@@ -217,7 +230,7 @@ void pagesaver(webpage_t* page, int filenum, char *pageDir)
 
 	// open file and print URL, depth, and HTML
 	FILE *fp = fopen(buffer, "w"); 
-	fprintf(fp, "%s\n%i\n%s", webpage_getURL(page), webpage_getDepth(page), webpage_getHTML(page));
+	fprintf(fp, "%s\n%i\n%i\n%s", webpage_getURL(page), webpage_getDepth(page), webpage_getHTMLlen(page), webpage_getHTML(page));
 	
 	// clean up 
 	fprintf(stdout, "WEBPAGE SAVED IN: %s\n", buffer);
@@ -225,15 +238,14 @@ void pagesaver(webpage_t* page, int filenum, char *pageDir)
 	fclose(fp);
 }
 
-bool searchfn(void* elementp,char* keyp)
+bool searchfn(void* elementp,const void* keyp)
 {
-	fprintf(stdout, "we in search function\n");
-	webpage_t *wp=(webpage_t*)elementp;
+	//fprintf(stdout, "we in search function\n");
+	char *comp=(char*)elementp;
 	//	char *comp="url";
-	char *comp=webpage_getURL(wp);
-	fprintf(stdout,"keyp is %s\n",(char*)keyp);
-	fprintf(stdout,"comp is %s\n",comp);
-	fprintf(stdout,"comparing %s to %s\n",comp,(char*)keyp);
+	//fprintf(stdout,"comp is %s\n",comp);
+	//fprintf(stdout,"keyp is %s\n",(char*)keyp);
+	//fprintf(stdout,"comparing %s to %s\n",comp,(char*)keyp);
 	if (strcmp(comp,(char*)keyp)==0)
 		return(true);
 	else return(false);

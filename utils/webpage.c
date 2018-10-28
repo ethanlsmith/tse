@@ -58,6 +58,7 @@ static const char* EXTS[NUM_EXTS] = {	 // valid extensions
 
 /* getter methods */
 int   webpage_getDepth(const webpage_t *page) { return page ? page->depth : 0;    }
+int   webpage_getHTMLlen(const webpage_t *page) { return page ? page->html_len : 0; }
 char *webpage_getHTML(const webpage_t *page)  { return page ? page->html  : NULL; }
 char *webpage_getURL(const webpage_t *page)   { return page ? page->url   : NULL; }
 
@@ -278,16 +279,14 @@ int webpage_getNextURL(webpage_t *page, int pos, char **result) {
   if (relative) {                           // need to fixup relative links
     *result = FixupRelativeURL(base_url, href, end - href);
     if (!*result) { return -2; }
-  } else {
+  }
+	else {
     // create new buffer
     *result = calloc(end-href+1, sizeof(char));
-
     if (!*result) { return -2; }          // check memory
-
     // copy over absolute url
     strncpy(*result, href, end - href);
   }
-
   // return position at the end of the url
   return end - html;
 }

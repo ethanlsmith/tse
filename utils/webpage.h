@@ -19,6 +19,7 @@ typedef struct webpage webpage_t;
 
 /* getter methods */
 int   webpage_getDepth(const webpage_t *page);
+int   webpage_getHTMLlen(const webpage_t *page);
 char *webpage_getURL(const webpage_t *page);
 char *webpage_getHTML(const webpage_t *page);
 
