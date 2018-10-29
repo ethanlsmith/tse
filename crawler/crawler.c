@@ -18,12 +18,13 @@
 #include "webpage.h"
 #include "hash.h"
 #include "queue.h"
+#include "pageio.h"
 
 /* saves page into given directory under filename
- * given by filenum in the format url, depth, and
+ * given by filenum in the format url, depth, HTMLlen and
  * HTML each on their own lines
  */
-void pagesaver(webpage_t* page, int filenum, char *pageDir);
+//int32_t pagesave(webpage_t* page, int filenum, char *pageDir);
 
 /* makes webpage structs from the given file, assuming
  * it is in the format "URL\n depth\n HTML\n". Assigns 
@@ -76,7 +77,7 @@ int main(const int argc, char *argv[])
 	qput(pagesToCrawl, seed);
 
 	char*np=(char*) malloc(sizeof(seedURL)*strlen(seedURL));                                                                           
-  strcpy(np,seedURL);
+  	strcpy(np,seedURL);
 	hput(pagesSeen,np,np,strlen(np));
 
 	// crawl from seed URL
@@ -86,11 +87,7 @@ int main(const int argc, char *argv[])
 	fprintf(stdout, "...CRAWL ENDED\n");
 
 	// clean up
-	//qapply(pagesToCrawl, webpage_delete);
-	//happly(pagesSeen,NULL);
 	qclose(pagesToCrawl);
-	//fprintf(stdout,"its not qclose\n\n");
-	//free(pagesSeen);
 	hclose(pagesSeen);
 	return 0;
 }
@@ -150,7 +147,7 @@ void crawler(queue_t *pagesToCrawl, int maxDepth, char *pageDir, hashtable_t *pa
 
 		// fetch and save page 
 		if (webpage_fetch(page)) {  
-			pagesaver(page, i, pageDir); 
+			pagesave(page, i, pageDir); 
 			i++;
 		} else {
 			fprintf(stderr, "failed to fetch page, url: %s\n", webpage_getURL(page));
@@ -219,24 +216,26 @@ void pagescanner(webpage_t* page, hashtable_t *pagesSeen, int depth, queue_t *pa
  	}
 }
 
-void pagesaver(webpage_t* page, int filenum, char *pageDir)
-{
-	// create file path
-	char *buffer = (char *) malloc(sizeof(pageDir)*10);
-	char num[5];
-	strcpy(buffer, pageDir);
-	sprintf(num, "%d", filenum);
-	strcat(buffer, num);
-
-	// open file and print URL, depth, and HTML
-	FILE *fp = fopen(buffer, "w"); 
-	fprintf(fp, "%s\n%i\n%i\n%s", webpage_getURL(page), webpage_getDepth(page), webpage_getHTMLlen(page), webpage_getHTML(page));
-	
-	// clean up 
-	fprintf(stdout, "WEBPAGE SAVED IN: %s\n", buffer);
-	free(buffer);
-	fclose(fp);
-}
+// int32_t pagesave(webpage_t* page, int filenum, char *pageDir)
+// {
+// 	// create file path
+// 	char *buffer = (char *) malloc(sizeof(pageDir)*10);
+// 	char num[5];
+// 	strcpy(buffer, pageDir);
+// 	sprintf(num, "%d", filenum);
+// 	strcat(buffer, num);
+// 
+// 	// open file and print URL, depth, and HTML
+// 	FILE *fp = fopen(buffer, "w"); 
+// 	fprintf(fp, "%s\n%i\n%i\n%s", webpage_getURL(page), webpage_getDepth(page), webpage_getHTMLlen(page), webpage_getHTML(page));
+// 	
+// 	// clean up 
+// 	fprintf(stdout, "WEBPAGE SAVED IN: %s\n", buffer);
+// 	free(buffer);
+// 	if(fclose(fp))
+// 		return(1);
+// 	return(0);
+// }
 
 bool searchfn(void* elementp,const void* keyp)
 {
