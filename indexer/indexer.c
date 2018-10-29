@@ -25,8 +25,11 @@ int main(void) {
 // 	printf("HELLO!\n");
 	char *word="hello";
 	int pos=1;
-
+	
 	webpage_t *page=pageload(1,"../pages/");
+	
+	FILE *fp2=fopen("output","w");
+
 	
 	printf("url is %s\n",webpage_getURL(page));
 // 	printf("depth is %i\n",webpage_getDepth(page));
@@ -35,11 +38,13 @@ int main(void) {
 
 	while((pos=webpage_getNextWord(page, pos, &word))>0) {
 		if(NormalizeWord(&word)>0) {
-		printf("%s\n",word);
+		fprintf(stdout,"%s\n",word);
+		fprintf(fp2,"%s\n",word);
 		free(word);
 		}
 	}
 
+	fclose(fp2);
 	webpage_delete(page);
 
 	return(0);
