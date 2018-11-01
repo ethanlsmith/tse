@@ -24,16 +24,24 @@ int count=0;
 
 typedef struct word {
   char *word;                               // word
-  int count;                               // count of words in document 1
+  queue_t *Docs;                            // que of documents
 } word_t;
+
+typedef struct doc {
+  int id;									//document id
+  int count;								//occurrences of words in that doc
+} doc_t;
 
 int NormalizeWord(char **word);
 bool searchfn(void* elementp,const void* keyp);
 void fn(void* ep);
-word_t *entry_new(char *word, const int count);
+word_t *entry_new(char *word, const int id, const int count);
 void entry_delete(void *data);
 static void *checkp(void *p, char *message);
 void sumwords(void*ep);
+bool docsearch(void* elementp,const void* keyp);
+doc_t *new_doc(const int id, const int count);
+void sum(void*ep);
 
 int main(void) {
 
@@ -43,6 +51,7 @@ int main(void) {
 	
 	webpage_t *page=pageload(1,"../pages/");
 	hashtable_t *Index=hopen(10);
+	int docid=1;
 	
 // 	FILE *fp2=fopen("output","w");
 
@@ -58,9 +67,9 @@ int main(void) {
 			if (temp!=NULL) {
 				fprintf(stdout,"we already found %s\n",temp->word);
 // 				fprintf(stdout,"we already found %s\n",temp);
- 				int i=temp->count;
-				temp->count=i+1;
-				fprintf(stdout,"count is now %i\n",temp->count);
+ 				doc_t*moddoc=qsearch(temp->Docs,docsearch,(void*)&docid);
+				moddoc->count+=1;
+				fprintf(stdout,"count is now %i\n",moddoc->count);
 			}
 			else {
 // 				word_t *wordstruct=malloc(sizeof(*wordstruct));
@@ -72,7 +81,7 @@ int main(void) {
 // 				strcpy(np,word);
 // 				strcpy(wordstruct->wrd,np);
 // 				temp->count=1;
-				word_t *wordstruct=entry_new(word,1);
+				word_t *wordstruct=entry_new(word,1,1);
 				hput(Index,(void*)wordstruct,word,strlen(word));
 // 				hput(Index,(void*)np,np,strlen(np));
 	  			fprintf(stdout,"we put in '%s'\n",word);
@@ -125,6 +134,21 @@ bool searchfn(void* elementp,const void* keyp)
 	else return(false);
 }
 
+bool docsearch(void* elementp,const void* keyp)
+{
+	//fprintf(stdout, "we in search function\n");
+	doc_t *compare=(doc_t *)elementp;
+	int comp=compare->id;
+// 	char *comp=(char *)elementp;
+	//char *comp="course";
+	//fprintf(stdout,"comp is %s\n",comp);
+	//fprintf(stdout,"keyp is %s\n",(char*)keyp);
+// 	fprintf(stdout,"comparing %s to search key: %s\n",comp,(char*)keyp);
+	if (comp==*((int*)keyp))
+		return(true);
+	else return(false);
+}
+
 void fn(void* ep)
 {
 // 	word_t*temp=(word_t*)ep;
@@ -133,7 +157,7 @@ void fn(void* ep)
 	fprintf(stdout,"word is %s\n",temp);
 }
 
-word_t *entry_new(char *word, const int count)
+word_t *entry_new(char *word, const int id, const int count)
 {
   if (word == NULL || count < 0) {
     return NULL;
@@ -142,7 +166,9 @@ word_t *entry_new(char *word, const int count)
 
   page->word = checkp(malloc(strlen(word)+1), "page->word");
   strcpy(page->word, word);
-  page->count = count;
+  page->Docs=qopen();
+  doc_t*document=new_doc(id,count);
+  qput(page->Docs,document);
   return page;
 }
 
@@ -151,8 +177,17 @@ void entry_delete(void *data)
   word_t *page = data;
   if (page != NULL) {
     if (page->word) free(page->word);
+    qclose(page->Docs);
     free(page);
   }
+}
+
+doc_t *new_doc(const int id, const int count)
+{
+	doc_t *new = checkp(malloc(sizeof(doc_t)), "doc_t");
+	new->id=id;
+	new->count=count;
+	return(new);
 }
 
 /**************** checkp ****************/
@@ -172,6 +207,12 @@ checkp(void *p, char *message)
 void sumwords(void*ep)
 {
 	word_t* temp=(word_t*)ep;
-	count+=temp->count;
+	qapply(temp->Docs,sum);
 // 	count++;
+}
+
+void sum(void*ep)
+{
+	doc_t* temp=(doc_t*)ep;
+	count+=temp->count;
 }
