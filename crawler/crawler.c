@@ -244,7 +244,7 @@ bool searchfn(void* elementp,const void* keyp)
 	//	char *comp="url";
 	//fprintf(stdout,"comp is %s\n",comp);
 	//fprintf(stdout,"keyp is %s\n",(char*)keyp);
-	//fprintf(stdout,"comparing %s to %s\n",comp,(char*)keyp);
+	fprintf(stdout,"comparing %s to %s\n",comp,(char*)keyp);
 	if (strcmp(comp,(char*)keyp)==0)
 		return(true);
 	else return(false);

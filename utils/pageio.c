@@ -61,6 +61,7 @@ webpage_t *pageload(int filenum, char *pageDir)
 	// open file and scan URL, depth, and HTML
 	FILE *fp = fopen(buffer, "r");
 	fscanf(fp,"%s %i %i",url,&depth,&html_size);
+	printf("html size is %i\n",html_size);
 // 	char new_html[1000*];
 	size_t n = 0, nchar = NCHAR;
     char *new_html = malloc (sizeof *new_html * nchar);

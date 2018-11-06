@@ -21,6 +21,7 @@
 #include "pageio.h"
 
 int count=0;
+FILE*fp=NULL;
 
 typedef struct word {
   char *word;                               // word
@@ -43,45 +44,72 @@ bool docsearch(void* elementp,const void* keyp);
 doc_t *new_doc(const int id, const int count);
 void sum(void*ep);
 void doc_delete(void *data);
+void indexsave(hashtable_t*Index,char*indexnm);
+void printindexword(void*ep);
+void printindexdoc(void*ep);
+char* itoa(int val, int base);
 
 int main(const int argc, char *argv[])
 {
+	int pos=0;
+	int docid;
+	int maxpos=0;
+	
 	// check for exactly three parameters
-	if (argc != 2) {
+	if (argc != 3) {
 		fprintf(stderr, "usage: exactly 1 arguments (id)\n");
 		return 1;
 	}
 
 	// create variables of arguments
-	int MaxDocId = atoi(argv[1]);
-// 	char *pageDir = argv[2];
+// 	int MaxDocId = 3;
+// 	int MaxDocId = atoi(argv[1]);
+	char *indexnm = argv[2];
+	// char *dirtemp = argv[1];
+	char *pageDir = argv[1];
+	char *dirtemp = malloc(sizeof(pageDir)*strlen(pageDir));
+	strcpy(dirtemp,pageDir);
+// 	printf("page dir is %s\n",pageDir);
 	
 	char *word="hellotherehowareyou";
 	hashtable_t *Index=hopen(10);
-
-	for(int c=0;c<MaxDocId;c++) {
 	
-		webpage_t *page=pageload(c+1,"../pages/");
-		int docid=c+1;
-		int pos=1;
+	for(int c=0;fopen(strcat(dirtemp,itoa(c+1,10)),"r");c++) {
+		
+		strcpy(dirtemp,pageDir);
+// 		printf("dirtemp is %s\n",dirtemp);
+		
+		webpage_t *page=pageload(c+1,pageDir);
+		docid=c+1;
+		printf("the page number is %i\n",c+1);
+		pos=1;
+		maxpos=0;
 		
 // 		printf("value of c is %i\n",c);
 		printf("url is %s\n",webpage_getURL(page));
-
-		while((pos=webpage_getNextWord(page, pos, &word))>0) {
+		maxpos=webpage_getHTMLlen(page);
+// 		printf("maxpos is %d\n",maxpos);
+// 		char*html=webpage_getHTML(page);
+// 		printf("%s\n",html);
+		
+		while((pos=webpage_getNextWord(page, pos, &word))>0 && (pos<maxpos) )  {
+// 			printf("pos is %d\n",pos);
 			if(NormalizeWord(&word)>0) {
 // 				printf("position is %d\n",pos);
-				fprintf(stdout,"the word is '%s'\n",word);
+// 				fprintf(stdout,"the word is '%s'\n",word);
 	//			happly(Index,fn);
 				word_t *temp=(word_t*)hsearch(Index,searchfn,word,strlen(word));
 				if (temp!=NULL) {
-					fprintf(stdout,"we already found '%s'\n",temp->word);
+// 					fprintf(stdout,"we already found '%s'\n",temp->word);
 					doc_t*moddoc=qsearch(temp->Docs,docsearch,(void*)&docid);
 					if (moddoc!=NULL) {
+// 						printf("moddoc is not null\n");
 						moddoc->count+=1;
-						fprintf(stdout,"count is now %i\n",moddoc->count);
+// 						fprintf(stdout,"count is now %i\n",moddoc->count);
 					}
 					else {
+// 						printf("moddoc is null\n");
+// 		 				printf("position is %d\n",pos);
 						doc_t *newdoc=new_doc(docid,1);
 						qput(temp->Docs,(void*)newdoc);
 					}
@@ -95,19 +123,48 @@ int main(const int argc, char *argv[])
 			}
 		}
 		webpage_delete(page);
+// 		free(page);
 		happly(Index,sumwords);
 		printf("the number of words is %i\n",count);
+		indexsave(Index,indexnm);
 	}
 // 	happly(Index,sumwords);
 // 	printf("the number of words is %i\n",count);
 // 	happly(Index,entry_delete);
+	free(dirtemp);
 	hclose(Index);
 	return(0);
 	
 }
 
+void indexsave(hashtable_t*Index,char*indexnm)
+{
+	fp=fopen(indexnm,"w");
+	happly(Index,printindexword);
+	fclose(fp);
+}
+
+void printindexword(void*ep)
+{
+	word_t*temp=(word_t*)ep;
+	fprintf(fp,"%s ",temp->word);
+	qapply(temp->Docs,printindexdoc);
+	fprintf(fp,"\n");
+}
+
+void printindexdoc(void*ep)
+{
+	doc_t*temp=(doc_t*)ep;
+	fprintf(fp,"%i %i ",temp->id,temp->count);
+}
+
 int NormalizeWord(char **word)
 {
+		
+	if(*word==NULL)	{
+		free(*word);
+		return(-1);
+	}
 	
 	if ((strlen(*word))<3) {
 		free(*word);
@@ -216,4 +273,17 @@ void sum(void*ep)
 {
 	doc_t* temp=(doc_t*)ep;
 	count+=temp->count;
+}
+
+char* itoa(int val, int base)
+{
+	static char buf[32] = {0};
+	
+	int i = 30;
+	
+	for(; val && i ; --i, val /= base)
+	
+		buf[i] = "0123456789abcdef"[val % base];
+	
+	return &buf[i+1];
 }
