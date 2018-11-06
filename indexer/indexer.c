@@ -73,8 +73,9 @@ int main(const int argc, char *argv[])
 	
 	char *word="hellotherehowareyou";
 	hashtable_t *Index=hopen(10);
+	FILE*fp1=NULL;
 	
-	for(int c=0;fopen(strcat(dirtemp,itoa(c+1,10)),"r");c++) {
+	for(int c=0;(fp1=fopen(strcat(dirtemp,itoa(c+1,10)),"r"));c++) {
 		
 		strcpy(dirtemp,pageDir);
 // 		printf("dirtemp is %s\n",dirtemp);
@@ -127,10 +128,11 @@ int main(const int argc, char *argv[])
 		happly(Index,sumwords);
 		printf("the number of words is %i\n",count);
 		indexsave(Index,indexnm);
+		fclose(fp1);
 	}
 // 	happly(Index,sumwords);
 // 	printf("the number of words is %i\n",count);
-// 	happly(Index,entry_delete);
+	happly(Index,entry_delete);
 	free(dirtemp);
 	hclose(Index);
 	return(0);
