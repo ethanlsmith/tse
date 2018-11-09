@@ -72,7 +72,7 @@ int main(const int argc, char *argv[])
 // 	printf("page dir is %s\n",pageDir);
 	
 	char *word="hellotherehowareyou";
-	hashtable_t *Index=hopen(10);
+	hashtable_t *Index=hopen(10000);
 	FILE*fp1=NULL;
 	
 	for(int c=0;(fp1=fopen(strcat(dirtemp,itoa(c+1,10)),"r"));c++) {
@@ -82,7 +82,7 @@ int main(const int argc, char *argv[])
 		
 		webpage_t *page=pageload(c+1,pageDir);
 		docid=c+1;
-		printf("the page number is %i\n",c+1);
+		printf("the page number is %d\n",c+1);
 		pos=1;
 		maxpos=0;
 		
@@ -126,7 +126,7 @@ int main(const int argc, char *argv[])
 		webpage_delete(page);
 // 		free(page);
 		happly(Index,sumwords);
-		printf("the number of words is %i\n",count);
+// 		printf("the number of words is %d\n",count);
 		indexsave(Index,indexnm);
 		fclose(fp1);
 	}
@@ -230,7 +230,7 @@ void entry_delete(void *data)
   if (page != NULL) {
     if (page->word) free(page->word);
     qclose(page->Docs);
-    free(page);
+//     free(page);
   }
 }
 

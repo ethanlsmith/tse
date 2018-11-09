@@ -3,13 +3,10 @@ CFLAGS=-Wall -pedantic -std=c11 -I../utils -L../lib -g
 
 all: indexer
 
-webpage.o: ../utils/webpage.c ../utils/webpage.h
-				gcc $(CFLAGS) -c ../utils/webpage.c
-
-indexer.o: indexer.c ../utils/webpage.h
+indexer.o: indexer.c
 				gcc $(CFLAGS) -c indexer.c
 
-indexer:  indexer.o webpage.o
+indexer:  indexer.o
 				gcc $(CFLAGS) indexer.c $(LIBS) -o $@                                               
 
 clean:
