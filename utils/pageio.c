@@ -56,52 +56,27 @@ webpage_t *pageload(int filenum, char *pageDir)
 	strcpy(buffer, pageDir);
 	sprintf(num, "%d", filenum);
 	strcat(buffer, num);
-// 	fprintf(stdout,"buffer is %s\n\n",buffer);
 
 	// open file and scan URL, depth, and HTML
 	FILE *fp = fopen(buffer, "r");
 	fscanf(fp,"%s%d%d\n",url,&depth,&html_size);
-	printf("html size is %d\n",html_size);
-// 	char new_html[1000*];
+// 	printf("html size is %d\n",html_size);
     char *new_html;
-    printf("got to line 66\n");
      if((new_html= (char*) malloc (html_size*2))==NULL) {
      	printf("error on malloc\n");
      	exit(EXIT_FAILURE);
      }
-    printf("malloc succeeded\n");
     char *p=new_html;
-// 	char *new_html=malloc(sizeof(char)*sizeof(html_size)*6);
-	
-// 	fprintf(stdout,"depth is %i, html size is %i\n",depth,html_size);
-	
-// 	char c;
 	int i;
 	
-// 	while ( (i<html_size)) {  /* for each char in file */
-// // 	while ((c = fgetc (fp)) != EOF) {  /* for each char in file */
-//         c = fgetc (fp);
-//         new_html[i++] = c;       /* assign char to array */
-// // 	if (i>(html_size-20)) {
-// 		printf("c is %c\n",c);
-// // 		printf("new html is %s\n",new_html);
-// // 	}
-// // 		printf("i is %d\n",i);
-//     }
 	for(i=0;i<html_size;i++,p++) {
 		*p=fgetc(fp);
 	}
 		*p='\0';
-// 	printf("i is %d\n",i);
-// 	printf("new_html is \n%s\n",new_html);
-// 	fprintf(stdout,"the html is %s\n",new_html);
 	
 	//make the webpage
 	webpage_t *new=webpage_new(url,depth,new_html);
-// 	printf("html size is %d\n",webpage_getHTMLlen(new));
-// 	printf("html is \n%s\n",webpage_getHTML(new));
 	// clean up 
-// 	fprintf(stdout, "WEBPAGE LOADED FROM URL: %s\n", url);
 	free(buffer);
 	if(fclose(fp))
 		return(NULL);
