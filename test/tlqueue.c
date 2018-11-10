@@ -5,6 +5,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdbool.h>
+#include <pthread.h>
 #include "lqueue.h"
 #include "queue.h"
 #define MAXNM 20
@@ -72,7 +73,8 @@ person_t *make_person(char *namep,int age,double sal)  {
 
 int main(int argc, char *argv[]) {
 	int choice=atoi(argv[1]);
-	
+
+	pthread_t tid1,tid2;
 	lqueue_t *lq1;
 	car_t got;
 	car_t *gptr=&got;
@@ -88,8 +90,23 @@ int main(int argc, char *argv[]) {
 	switch(choice) {
 	case 1:
 		lq1=lqopen();
-		if ((car_t*)lqget(lq1)!=NULL)	
-			res=false;
+		if(pthread_create(&tid1,NULL,qget,lq1)!=0)
+		res=false;
+		if(pthread_join(tid1,NULL)!=0)
+		res=false;
+		lqclose(lq1);
+		break;
+
+	case 2:
+		lq1=lqopen();
+		if(pthread_create(&tid1,NULL,qget,lq1)!=0)
+		res=false;
+		if(pthread_create(&tid2,NULL,qget,lq1)!=0)
+		res=false;
+		
+		if(pthread_join(tid1,NULL)!=0)
+		if(pthread_join(tid2,NULL)!=0)
+		res=false;
 		lqclose(lq1);
 		break;
 		

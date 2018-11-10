@@ -1,6 +1,7 @@
 #!/bin/bash
 
 runtest.sh "tlqueue 1"
+runtest.sh "tlqueue 2"
 runtest.sh "tlqueue 3"
 runtest.sh "tlqueue 4"
 runtest.sh "tlqueue 5"

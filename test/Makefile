@@ -12,7 +12,7 @@ tlqueue.o:	tlqueue.c	lqueue.h queue.h
 							gcc	$(CFLAGS)	-c	tlqueue.c
 
 tlqueue:		tlqueue.o	lqueue.o queue.o
-							gcc	$(CFLAGS)	tlqueue.o	lqueue.o	queue.o -o	tlqueue
+							gcc	$(CFLAGS) -pthread	tlqueue.o	lqueue.o	queue.o -o	tlqueue
 
 clean:
 							rm	-f	*.o	tlqueue
