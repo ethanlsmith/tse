@@ -1,16 +1,18 @@
-LIBS=-lutils -lcurl
-CFLAGS=-Wall -pedantic -std=c11 -I../utils -L../lib -g                                     
+CFLAGS=	-Wall -pedantic -std=c11  -I.	-g
 
-all: tpageio
+all:	tlqueue
 
-webpage.o: ../utils/webpage.c ../utils/webpage.h
-				gcc $(CFLAGS) -c ../utils/webpage.c
+%.o:	%.c	%.h
+							gcc	$(CFLAGS)	-c	queue.c
 
-tpageio.o: tpageio.c ../utils/webpage.h
-				gcc $(CFLAGS) -c tpageio.c
+lqueue.o:	lqueue.c lqueue.h queue.h
+							gcc $(CFLAGS) -c lqueue.c
 
-tpageio:  tpageio.o webpage.o
-				gcc $(CFLAGS) tpageio.c $(LIBS) -o $@                                               
+tlqueue.o:	tlqueue.c	lqueue.h queue.h
+							gcc	$(CFLAGS)	-c	tlqueue.c
+
+tlqueue:		tlqueue.o	lqueue.o queue.o
+							gcc	$(CFLAGS)	tlqueue.o	lqueue.o	queue.o -o	tlqueue
 
 clean:
-				rm -f *.o tpageio
+							rm	-f	*.o	tlqueue

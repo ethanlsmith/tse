@@ -44,17 +44,14 @@ bool docsearch(void* elementp,const void* keyp);
 doc_t *new_doc(const int id, const int count);
 void sum(void*ep);
 void doc_delete(void *data);
-void indexsave(hashtable_t*Index,char*indexnm);
 void printindexword(void*ep);
 void printindexdoc(void*ep);
 char* itoa(int val, int base);
+void indexsave(hashtable_t*Index,char*indexnm);
+void indexload(hashtable_t*Index,char*pageDir);
 
 int main(const int argc, char *argv[])
 {
-	int pos=0;
-	int docid;
-	int maxpos=0;
-	
 	// check for exactly three parameters
 	if (argc != 3) {
 		fprintf(stderr, "usage: exactly 1 arguments (id)\n");
@@ -64,11 +61,26 @@ int main(const int argc, char *argv[])
 	// create variables of arguments
 	char *indexnm = argv[2];
 	char *pageDir = argv[1];
+	hashtable_t *Index=hopen(10000);
+	
+	indexload(Index,pageDir);	
+	indexsave(Index,indexnm);
+	
+	happly(Index,entry_delete);
+	hclose(Index);
+	return(0);
+	
+}
+
+void indexload(hashtable_t*Index,char*pageDir)
+{
+	int pos=0;
+	int docid;
+	int maxpos=0;
 	char *dirtemp = malloc(sizeof(pageDir)*strlen(pageDir));
 	strcpy(dirtemp,pageDir);
 	
 	char *word="hellotherehowareyou";
-	hashtable_t *Index=hopen(10000);
 	FILE*fp1=NULL;
 	
 	for(int c=0;(fp1=fopen(strcat(dirtemp,itoa(c+1,10)),"r"));c++) {
@@ -111,16 +123,9 @@ int main(const int argc, char *argv[])
 		}
 		//deallocate and find the number of words in the Index
 		webpage_delete(page);
-		indexsave(Index,indexnm);
 		fclose(fp1);
 	}
-// 	happly(Index,sumwords);
-// 	printf("the number of words is %i\n",count);
-	happly(Index,entry_delete);
 	free(dirtemp);
-	hclose(Index);
-	return(0);
-	
 }
 
 void indexsave(hashtable_t*Index,char*indexnm)
