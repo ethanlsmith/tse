@@ -36,11 +36,12 @@ bool searchfn(void* elementp,const void* keyp) {
 	else return(false);
 }
 
-bool searchfnp(void* elementp,const void* keyp) {                                                                                     
-  person_t *cp=(person_t*)elementp;                                                                                                   
-  if (strcmp(cp->name,(char*)keyp)==0)                                                                                                
+bool searchfnp(void* elementp,const void* keyp) {  
+	printf("searching...\n");                                                                               
+	person_t *cp=(person_t*)elementp;                                                                                                   
+	if (strcmp(cp->name,(char*)keyp)==0)                                                                                                
     return(true);                                                                                                                     
-  else return(false);                                                                                                                 
+	else return(false);                                                                                                                 
 }
 
 car_t *make_car(char *namep,double price,int year)  { 
@@ -90,7 +91,7 @@ int main(int argc, char *argv[]) {
 	switch(choice) {
 	case 1:
 		lq1=lqopen();
-		if(pthread_create(&tid1,NULL,qget,lq1)!=0)
+		if(pthread_create(&tid1,NULL,lqget,lq1)!=0)
 		res=false;
 		if(pthread_join(tid1,NULL)!=0)
 		res=false;
@@ -99,12 +100,13 @@ int main(int argc, char *argv[]) {
 
 	case 2:
 		lq1=lqopen();
-		if(pthread_create(&tid1,NULL,qget,lq1)!=0)
+		if(pthread_create(&tid1,NULL,lqget,lq1)!=0)
 		res=false;
-		if(pthread_create(&tid2,NULL,qget,lq1)!=0)
+		if(pthread_create(&tid2,NULL,lqget,lq1)!=0)
 		res=false;
 		
 		if(pthread_join(tid1,NULL)!=0)
+		res=false;
 		if(pthread_join(tid2,NULL)!=0)
 		res=false;
 		lqclose(lq1);
@@ -152,16 +154,23 @@ int main(int argc, char *argv[]) {
 		break;
 		
 	case 8:
+		printf("case 8\n");
 		lq1=lqopen();
 		lqput(lq1,(void*)sptr);
 		lqput(lq1,(void*)mptr);
 		lqput(lq1,(void*)vptr);
 		gptr=lqsearch(lq1,searchfn,(void*)"subie");
-		if (gptr==NULL)
+		if (gptr==NULL) {
+			printf("doesnt exist\n");
 			res=false;
-		break;
-		if (strcmp(gptr->name,"subie")!=0)
+			break;
+		}
+		if (strcmp(gptr->name,"subie")!=0) {
+			printf("didnt find it\n");
 			res=false;
+			break;
+		}
+		printf("search worked\n");
 		lqclose(lq1);
 		break;
 		

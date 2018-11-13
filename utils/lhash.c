@@ -14,13 +14,18 @@ typedef struct lhashtable {
 
 /* hopen -- opens a hash table with initial size hsize */
 lhashtable_t *lhopen(uint32_t hsize) {
-	lhash_s *lhtp = malloc(sizeof(lhash_s));
-	pthread_mutex_t *mptr=malloc(sizeof(pthread_mutex_t));
-	*mptr=lhtp->m;
-	pthread_mutex_init(mptr,NULL);
-	if((lhtp->htp=hopen(hsize))==NULL)
-	return(NULL);
-	return(lhtp);
+	pthread_mutex_t *mp;
+	hashtable_t *hp;
+	lhash_s *lhtp;
+	
+	if((lhtp = malloc(sizeof(lhash_s)))==NULL) // create locked ht
+		return NULL;
+	mp = &(lhtp->m);					// init associated mutex
+	pthread_mutex_init(mp,NULL);
+	if((hp = hopen(hsize))==NULL)		// open the hash table
+		return NULL;
+	lhtp->htp = hp;						// put in locked ht
+	return lhtp;						// return locked ht
 }        
 
 /* hclose -- closes a hash table */
@@ -28,23 +33,30 @@ void lhclose(lhashtable_t *lhtp) {
 	lhash_s *lhtc=(lhash_s *)lhtp;
 	hclose(lhtc->htp);
 	pthread_mutex_destroy(&lhtc->m);
-	free(lhtp);
+	free(lhtc);
 }
 
 /* hput -- puts an entry into a hash table under designated key 
  * returns 0 for success; non-zero otherwise
  */
 int32_t lhput(lhashtable_t *lhtp, void *ep, const char *key, int keylen) {
-	lhash_s *lhtc=(lhash_s *)lhtp;
-	pthread_mutex_lock(&lhtc->m);
-	if(hput(lhtc->htp,ep,key,keylen))
-	return(1);
-	pthread_mutex_unlock(&lhtc->m);
+	lhash_s *tp;
+	pthread_mutex_t *mp;
+	
+	tp = (lhash_s*)lhtp;
+	mp = &(tp->m);
+	pthread_mutex_lock(mp);
+	if((hput(tp->htp,ep,key,keylen))!=0) {
+		pthread_mutex_unlock(mp);
+		return(1);
+	}
+	pthread_mutex_unlock(mp);
 	return(0);
 }
 
 /* happly -- applies a function to every entry in hash table */
 void lhapply(lhashtable_t *lhtp, void (*fn)(void* ep)) {
+	
 	lhash_s *lhtc=(lhash_s *)lhtp;
 	pthread_mutex_lock(&lhtc->m);
 	happly(lhtc->htp,fn);

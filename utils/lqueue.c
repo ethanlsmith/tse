@@ -22,8 +22,10 @@ lqueue_t* lqopen(void) {
 	lqueue_s *lqp = malloc(sizeof(lqueue_s));
 	pthread_mutex_t *mptr=malloc(sizeof(pthread_mutex_t));
 	*mptr=lqp->m;
-	pthread_mutex_init(mptr,NULL);
+	if(pthread_mutex_init(mptr,NULL)) return(NULL);
 	lqp->qp=qopen();
+	pthread_mutex_lock(mptr);
+	pthread_mutex_unlock(mptr);	
 	return(lqp);
 }        
 
@@ -37,7 +39,7 @@ void lqclose(lqueue_t *lqp) {
 
 int32_t lqput(lqueue_t *lqp, void *elementp) {
 	lqueue_s *lqc=(lqueue_s *)lqp;
-	pthread_mutex_lock(&lqc->m);
+	pthread_mutex_lock(&lqc->m);	//this is causing the infinite loop, maybe not unlocked?
 	qput(lqc->qp,elementp);
 	pthread_mutex_unlock(&lqc->m);
 	return(0);
